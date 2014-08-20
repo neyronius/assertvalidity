@@ -48,7 +48,7 @@ return [
         foreach ($v as $key => $value){
             if(isset($rules[$key])){
                 //@error This call clear backtrace history
-                if(!$validatum->check([$rules[$key], null], $value)){
+                if(!$validatum->checkWorker([$rules[$key], null], $value)){
                     return false;
                 }
             }
@@ -56,6 +56,8 @@ return [
         
         return true;
     },
+            
+    
             
     'min_length' => function($v, $l){
         return strlen($v) >= $l;

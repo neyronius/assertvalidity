@@ -75,6 +75,7 @@ class ValidatumTest extends \PHPUnit_Framework_TestCase
         
         $this->assertTrue($v->check('test_custom_hash', ['status' => true, 'message' => 'ok']));
         $this->assertFalse($v->check('test_custom_hash', ['status' => 'true', 'message' => 1]));
-        
     }
+    
+    
 }
