@@ -1,0 +1,30 @@
+{
+    "name": "neyronius/AssertValidity",
+    "type": "library",
+    "description": "Library for checking arguments in functions and methods",
+    "keywords": ["argument"],
+    "homepage": "https://twitter.com/neyronius",
+    "license": "MIT",
+
+    "authors": [
+        {
+            "name": "Vladislav Samokhin",
+            "email": "neyronius@gmail.com",
+            "homepage": "https://github.com/neyronius"
+        }
+    ],
+
+    "require": {
+        "php": ">=5.4.0"
+    },
+    
+    "require-dev":{
+        "phpunit/phpunit": "~4.2"
+    },
+    
+    "autoload": {
+        "psr-4": {
+            "AssertValidity\\": "src/AssertValidity"
+        }
+    }
+}
