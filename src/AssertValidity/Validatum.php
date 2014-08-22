@@ -11,7 +11,7 @@ class Validatum
     
     public function __construct()
     {
-        $this->merge(require __DIR__ . '/rules.php');
+        $this->import(require __DIR__ . '/rules.php');
     }
     
     public function check($rule, $value)
@@ -140,7 +140,7 @@ class Validatum
      * 
      * @param array $rules
      */
-    public function merge($rules)
+    public function import($rules)
     {
         $this->rules = array_merge($this->rules, $rules);
     }

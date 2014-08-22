@@ -12,7 +12,7 @@ class ValidatumTest extends \PHPUnit_Framework_TestCase
     protected function prepareValidator()
     {
         $v = new Validatum;
-        $v->merge(include __DIR__ . '/../testrules.php');
+        $v->import(include __DIR__ . '/../testrules.php');
         return $v;
     }
     
@@ -21,7 +21,7 @@ class ValidatumTest extends \PHPUnit_Framework_TestCase
         $v = new Validatum;
         
         $this->assertFalse($v->isRuleSet('test_password'));
-        $v->merge(include __DIR__ . '/../testrules.php');
+        $v->import(include __DIR__ . '/../testrules.php');
         $this->assertTrue($v->isRuleSet('test_password'));
     }
 

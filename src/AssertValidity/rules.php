@@ -6,8 +6,8 @@ return [
         return is_int($v);
     },
             
-    'min' => ['int', function($v, $min){ return $v >= $min;}],
-    'max' => ['int', function($v, $max){ return $v <= $max;}],
+    'min' => [function($v, $min){ return $v >= $min[0];}],
+    'max' => [function($v, $max){ return $v <= $max[0];}],
     'range' => ['int', function($v, $m){ return $v <= $m[1] && $v >= $m[0];}],
             
     'numeric' => function($v){ return is_numeric($v);},
@@ -47,7 +47,6 @@ return [
     'array_keys_rules' => function($v, $rules, \AssertValidity\Validatum $validatum){
         foreach ($v as $key => $value){
             if(isset($rules[$key])){
-                //@error This call clear backtrace history
                 if(!$validatum->checkWorker([$rules[$key], null], $value)){
                     return false;
                 }
@@ -56,8 +55,6 @@ return [
         
         return true;
     },
-            
-    
             
     'min_length' => function($v, $l){
         return strlen($v) >= $l;
@@ -69,19 +66,8 @@ return [
             
     'str_length' => function($v, $l){ return strlen($v) === $l;},
             
-    //'ino_username' => ['string', 'minLength:8', 'maxLength:30'],
-            
-//    'userarray' => [ 'hash' => [
-//        
-//            'allowed_keys' => ['id', 'first_name', 'last_name', 'deleted', 'created', 'email'],
-//            'required_keys' => ['id', 'email'],
-//            'disallowed_keys' => ['imail'],
-//            'elements' => [
-//                'id' => ['int', 'min:0', 'max:1000'],
-//                'email' => ['email'],
-//                'first_name' => ['string', 'minLength:1', 'maxLength:100'],
-//            ]
-//        ]
-//    ]
+    'values' => function($v, $options){
+        return in_array($v, $options, true);
+    }
     
 ];

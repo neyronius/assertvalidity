@@ -9,7 +9,7 @@ class AV
      *
      * @var Validatum => VAlidatum
      */
-    protected static $validator = null;
+    protected static $validatum = null;
     
     /**
      *
@@ -17,26 +17,43 @@ class AV
      */
     protected static $argumentum = null;
 
-    protected static function getValidator()
+    /**
+     * 
+     * @return Validatum
+     */
+    public static function getValidatum()
     {
-        //if(...)
+        if(self::$validatum === null){
+            self::$validatum = new Validatum;
+        }
+        
+        return self::$validatum;
     }
     
-    protected static function getArgumentum()
+    /**
+     * 
+     * @return Argumentum
+     */
+    public static function getArgumentum()
     {
+        if(self::$argumentum === null){
+            self::$argumentum = new Argumentum;
+            
+            self::$argumentum->setValidator(self::getValidatum());
+        }
         
+        return self::$argumentum;        
     }
 
 
 
-    public static function rule()
+    public static function rule($rule, $value)
     {
-        
-        
+        return self::getValidatum()->check($rule, $value);
     }
     
     public static function arg($method, $arguments)
     {
-        
+        return self::getArgumentum()->check($method, $arguments);
     }
 }

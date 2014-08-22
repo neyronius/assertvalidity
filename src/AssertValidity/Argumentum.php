@@ -21,10 +21,19 @@ class Argumentum
         $this->validator = $v;
     }
 
+    /**
+     * Check arguments in given function|method based on doccomment
+     * 
+     * @param string $method
+     * @param array $arguments
+     * @throws \InvalidArgumentException
+     */
     public function check($method = null, $arguments = null)
     {
-//        $rm = new \ReflectionMethod($method);
-        $rm = new \ReflectionFunction($method);
+        $rm = (strpos($method, '::') === false) 
+                    ? new \ReflectionFunction($method)
+                    : new \ReflectionMethod($method);
+        
         $rules = $this->parseComment($rm->getDocComment());
         
         foreach ($rm->getParameters() as $p) {
@@ -37,8 +46,7 @@ class Argumentum
                 
                 throw new \InvalidArgumentException("Parameter $name does not pass rule $rule");
             }
-                    
-        }        
+        }
     }
     
     /**
