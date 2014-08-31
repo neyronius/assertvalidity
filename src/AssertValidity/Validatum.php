@@ -2,25 +2,103 @@
 
 namespace AssertValidity;
 
-class Validatum
-{
-    
+class Validatum {
+
     protected $rules = [];
-    
     protected $errorBackTrace = [];
-    
+
     public function __construct()
     {
         $this->import(require __DIR__ . '/rules.php');
     }
-    
+
     public function check($rule, $value)
     {
         $this->errorBackTrace = [];
         return $this->checkWorker($rule, $value);
     }
 
+    protected function isStringRule($rule)
+    {
+        if (is_string($rule)) {
+
+            if (strlen($rule) === 0) {
+                throw new Exception("Rule name could not be empty", 1409480471);
+            }
+
+            $ruleStructure = explode(':', $rule);
+
+            return [
+                $this->getRuleDescription($ruleStructure[0]),
+                array_slice($ruleStructure, 1)
+            ];
+        }
+
+        return null;
+    }
+
     /**
+     * Check if parameter is Closure
+     * 
+     * @param \Closure $rule
+     * @return boolean
+     */
+    protected function isRealCallable($rule)
+    {
+        return is_callable($rule) && is_object($rule) && $rule instanceof \Closure;
+    }
+
+    protected function isCallBackRule($rule)
+    {
+        if ($this->isRealCallable($rule)) {
+            return [$rule, []];
+        } elseif (is_array($rule) && count($rule) === 2 && isset($rule[0], $rule[1]) && $this->isRealCallable($rule[0]) && is_array($rule[1])) {
+            return [$rule[0], $rule[1]];
+        }
+
+        return null;
+    }
+
+    protected function isArrayRule($rule)
+    {
+        if (is_array($rule) && count($rule) === 1) {
+            $key = array_keys($rule)[0];
+
+            if (is_string($key)) {
+                return [
+                    $this->getRuleDescription($key),
+                    $rule[$key]
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    protected function isSetOfRules($rule)
+    {
+        if (is_array($rule)) {
+            return [$rule, []];
+        }
+
+        return null;
+    }
+
+    /**
+     * Execute rule and returns true or false
+     * Used recursively
+     * 
+     * $rule:
+     *  
+     *  Determinitives (det):
+     *  ["rule" => [p1, p2, ...] - one rule name with parameters
+     *  "rule:parameter1:parameter2" - one rule name with parameters eq ["rule" => [p1, p2]]
+     *  "rule" - one rule name eq ["rule" => []]
+     *  [function($v, $p1, $p2){}:boolean, [$p1, $p2]] - one callback with parameters
+     *  function($v){}:boolean - simple callback
+     * 
+     *  Or array of determenitives:
+     *  ["rule", "rule" => [p1, p2], function($v){}, ...det ]
      * 
      * @param string|[]|callable $rule
      * @param mixed $value
@@ -29,102 +107,55 @@ class Validatum
      */
     protected function checkWorker($rule, $value)
     {
-        //try{
-            
-            $ruleName = ''; //string name of the rule
-            $ruleArguments = [];
+        $checkers = ['isArrayRule', 'isCallBackRule', 'isStringRule', 'isSetOfRules'];
 
-            if(is_string($rule)){
+        foreach ($checkers as $checker) {
+            $ruleNormalized = call_user_func_array([$this, $checker], [$rule]);
 
-                if(strlen($rule) === 0){
-                    throw new \Exception("Invalid rule name");
-                }
+            if ($ruleNormalized) {
+                break;
+            }
+        }
 
-                $ruleStructure = explode(':', $rule);
+        if (!$ruleNormalized || $ruleNormalized[0] === null) {
+            //@todo Add a string description for $rule variable
+            throw new \Exception("Invlaid rule $rule");
+        }
 
-                $ruleName = $ruleStructure[0];
-                $ruleArguments = array_slice($ruleStructure, 1);
+        if ($this->isRealCallable($ruleNormalized[0])) {
 
-            }elseif(is_array($rule)){
+            $res = call_user_func_array(
+                    $ruleNormalized[0], array_merge([$value], $ruleNormalized[1], [$this])
+            );
 
-                if(count($rule) !== 2){
-                    throw new \Exception("Invalid rule structure. Array[2] expected");
-                }
-
-                if(is_string($rule[0])){
-                    $ruleName = $rule[0];
-                }elseif(is_callable($rule[0]) || is_array($rule[0])){
-                    $ruleDescription = $rule[0];
-                }else{
-                    throw new \Exception("Invalid rule type", 1408044522);
-                }
-                
-                $ruleArguments = [$rule[1]];
-
-            }elseif(is_callable($rule)){
-
-                $ruleDescription = $rule;
-
-            }else{
-                throw new \Exception("Invalid parameter", 1407955541);
+            if (!$res && is_string($rule) && strlen($rule) > 0) {
+                $this->errorBackTrace[] = $rule;
             }
 
-            if(!isset($ruleDescription)){
-                
-                if(!isset($this->rules[$ruleName])){
-                    throw new \Exception("Rule '{$ruleName}' does not exist", 1407955542);
+            return $res;
+        } elseif (is_array($ruleNormalized[0])) {
+
+            foreach ($ruleNormalized[0] as $k => $v) {
+                if (is_string($k)) {
+                    $workerRule = [$k => $v];
+                } elseif ($this->isRealCallable($v)) {
+                    $workerRule = [$v, $ruleNormalized[1]];
+                } else {
+                    $workerRule = $v;
                 }
-                
-                $ruleDescription = $this->rules[$ruleName];
-            }
 
-            if(is_callable($ruleDescription)){
-                
-                $res = call_user_func_array(
-                                $ruleDescription,
-                                array_merge([$value], $ruleArguments, [$this])
-                        );
-                
-                if(!$res && is_string($ruleName) && strlen($ruleName) > 0){
-                    $this->errorBackTrace[] = $ruleName;
+                if (!$this->checkWorker($workerRule, $value)) {
+                    //$this->errorBackTrace[] = $ruleName;
+                    return false;
                 }
-                
-                return $res;
             }
-
-            if(!is_array($ruleDescription)){
-                throw new \Exception("Invalid rule descriprion");
-            }
-
-            foreach ($ruleDescription as $k => $r) {
-
-               if (is_string($k)) {
-                   $r = [$k, $r];
-                   //['hash', [...]]
-               }elseif(is_callable($r)){
-                   //rule => [ ..., function(){} ]
-                   $r = [$r, $ruleArguments];
-               }
-
-               if (!$this->checkWorker($r, $value)) {
-                   $this->errorBackTrace[] = $ruleName;
-                   return false;
-               }
-            }
-
             return true;
             
-//        } catch (\Exception $ex) {
-//            
-//            die(sprintf("\r\n Error in rule %s: %s, file: %s, line: %d \r\n",
-//                    $rule,
-//                    $ex->getMessage(),
-//                    $ex->getFile(),
-//                    $ex->getLine()
-//            ));
-//        }
+        } else {
+            throw new \Exception("Invalid rule type: " . gettype($ruleNormalized[0]));
+        }
     }
-    
+
     /**
      * 
      * 
@@ -135,7 +166,7 @@ class Validatum
     {
         $this->rules[$name] = $description;
     }
-    
+
     /**
      * 
      * @param array $rules
@@ -144,15 +175,46 @@ class Validatum
     {
         $this->rules = array_merge($this->rules, $rules);
     }
-    
-    public function isRuleSet($ruleName)
+
+    public function isRuleExists($ruleName)
     {
         return isset($this->rules[$ruleName]);
     }
-    
+
+    /**
+     * Returns rule description as array or callable
+     * Returns null if rule is not found
+     * Handles aliases  like 'int' => 'integer' recursively
+     * 
+     * @param string $ruleName
+     * @return array|callable|null
+     */
+    public function getRuleDescription($ruleName)
+    {
+        if (isset($this->rules[$ruleName])) {
+            $ruleDescription = $this->rules[$ruleName];
+
+            if (is_string($ruleDescription)) {
+                return $this->getRuleDescription($ruleDescription);
+            }
+
+            return $ruleDescription;
+        }
+
+        return null;
+    }
+
     public function getErrorBackTrace()
     {
         return array_reverse($this->errorBackTrace);
+    }
+
+    /**
+     * Clear errors storage
+     */
+    public function clearErrorBackTrace()
+    {
+        $this->errorBackTrace = [];
     }
 
 }

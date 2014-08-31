@@ -4,78 +4,111 @@ use AssertValidity\Validatum;
 
 class ValidatumTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     *
+     * @var Validatum
+     */
+    protected $validatum = null;
+
+
+    public function setUp()
+    {
+        $this->validatum = new Validatum;
+    }
+    
+    public function dataSimpleTrue()
+    {
+        return [
+            ['min:1', 1],
+            ['min:1', 2],
+            ['min:100', 110],
+            ['max:100', 100],
+            ['max:0', -1],
+            ["range:0:10", 4],
+            [["range" => [0, 10]], 5],
+            ["int", 4],
+            ["numeric", 4.45],
+            ["string", "123"],
+            ['length_range:5:10', 'abcde'],
+            [['array_allowed_keys' => [['a1', 'a2']]], ['a1' => 1, 'a2' => 2]],
+            [['array_required_keys' => [['a1', 'a2']]], ['a1' => 1, 'a2' => 2, 'a3' => 1]],
+            [['array_allowed_values' => [[1,2,3]]], [1,1,2,3]],
+            [['allowed_values' => [['t1', 't2', 't3']]], 't2'],
+            
+            [['array_keys_rules' => [[
+                'type' => ['allowed_values' => [['success', 'failed']] ],
+                'code' => ['min:0', 'max:10'],
+            ]]], ['type' => 'success', 'code' => 4]],
+            
+            ['email', 'valid@email.com']
+             
+        ];
+    }
     
     /**
      * 
-     * @return \AssertValidity\Validatum
+     * @dataProvider dataSimpleTrue
      */
-    protected function prepareValidator()
+    public function testSimpleTrue($rule, $value)
     {
-        $v = new Validatum;
-        $v->import(include __DIR__ . '/../testrules.php');
-        return $v;
+        $this->assertTrue($this->validatum->check($rule, $value));
     }
     
-    public function testMerge()
+    public function dataSimpleFalse()
     {
-        $v = new Validatum;
-        
-        $this->assertFalse($v->isRuleSet('test_password'));
-        $v->import(include __DIR__ . '/../testrules.php');
-        $this->assertTrue($v->isRuleSet('test_password'));
-    }
-
-    public function testSimpleChain()
-    {
-        $v = $this->prepareValidator();
-        
-        $this->assertFalse($v->check('test_password', 123456), 'string');
-        $this->assertFalse($v->check('test_password', 'abcde'), 'min length');
-        $this->assertTrue($v->check('test_password', 'abcdef'), 'success');
-        $this->assertFalse($v->check('test_password', 'aaaaabbbbbcccccddddde'), 'max length');
-    }
-    
-    public function testDeepFail()
-    {
-        $v = $this->prepareValidator();
-        $v->check('test_password', 123456);
-        $this->assertEquals(['test_password', 'string'], $v->getErrorBackTrace());
-    }
-    
-    public function testMin()
-    {
-        $v = $this->prepareValidator();
-        $v->check('min:2', 1);
-        
-        $this->assertEquals(['min'], $v->getErrorBackTrace());
+        return [
+            ['min:1', 0],
+            ['min:1', -1],
+            ['min:100', 99],
+            ['min:100', "110"],
+            ['max:100', 101],
+            ['max:0', 1],
+            ['max:100', "100"],
+            ["range:0:10", -1],
+            [["range" => [-5, 10]], -6],
+            ["int", "4"],
+            ["numeric", "ffd"],
+            ["string", 123],
+            ['length_range:5:10', 'abcd'],
+            [['array_allowed_keys' => [['a1', 'a2']]], ['a1' => 1, 'a3' => 2]],
+            [['array_allowed_keys' => [['a1', 'a2']]], ['a1' => 1, 'a2' => 2, 'a3' => 3]],
+            [['array_required_keys' => [['a1', 'a2']]], ['a1' => 1, 'a3' => 2]],
+            [['array_allowed_values' => [[1,2,3]]], [1,4,2,3]],
+            [['allowed_values' => [['t1', 't2', 't3']]], 't4'],
+            
+            [['array_keys_rules' => [[
+                'type' => ['allowed_values' => [['success', 'failed']] ],
+                'code' => ['min:0', 'max:10'],
+            ]]], ['type' => 'success', 'code' => 11]],
+            
+            ['email', 'validate@email.']
+        ];
     }
     
-    public function testAllowedKeys()
+    /**
+     * 
+     * @dataProvider dataSimpleFalse
+     */
+    public function testSimpleFalse($rule, $value)
     {
-        $v = $this->prepareValidator();
-        
-        $rule = ['array_allowed_keys', ['a', 'b', 'c']];
-        
-        $this->assertTrue($v->check($rule, ['a' => 1, 'b' => 3]));
-        $this->assertFalse($v->check($rule, ['a' => 1, 'b' => 3, 'd' => 5]));
+        $this->assertFalse($this->validatum->check($rule, $value));
     }
     
-    public function testAllowedValues()
-    {
-        $v = $this->prepareValidator();
-        
-        $this->assertTrue($v->check('test_array_types', ['test1', 'test3']), 'true');
-        $this->assertFalse($v->check('test_array_types', ['not_allowed_value', 'test2']), 'false');
-        
-    }
     
-    public function tesCustomtHash()
-    {
-        $v = $this->prepareValidator();
-        
-        $this->assertTrue($v->check('test_custom_hash', ['status' => true, 'message' => 'ok']));
-        $this->assertFalse($v->check('test_custom_hash', ['status' => 'true', 'message' => 1]));
-    }
+//    public function testAV()
+//    {
+//        $this->assertTrue(
+//                
+//        $this->validatum->check(
+//                ['array_keys_rules' => [[
+//                    'type' => ['allowed_values' => [['success', 'failed']] ],
+//                    //'code' => ['min:0', 'max:10']
+//                ]]],
+//                ['type' => 'success', 'code' => 4])
+//        );
+//                
+//                
+//    }
     
     
 }

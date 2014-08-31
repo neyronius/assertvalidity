@@ -1,12 +1,15 @@
 <?php
 
+// 'length_range' => [1, 6] => ['length_range' => [1, 6]]
+
 return [
     
-    'test_password' => ['string', 'min_length:6', 'max_length:20'],
+    'test_password' => ['string', 'length_range' => [1, 6], 'max_length' => [20]],
     
     'test_hash_request' => [
                     'is_array', 
-                    'array_allowed_keys' => ['username', 'email', 'active']
+                    'array_allowed_keys' => [['username', 'email', 'active']],
+                    ['array_allowed_keys', [['username', 'email', 'active']]]
     ],
     
     'test_array_types' => [
