@@ -10,7 +10,7 @@ AssertValidity is a library that allows you to validate variables and function/m
  */
 function test($a)
 {
-    AV::arg(__METHOD__, func_get_args());
+    AV::arg(__FUNCTION__, func_get_args());
 }
 
 test("1"); //ok
