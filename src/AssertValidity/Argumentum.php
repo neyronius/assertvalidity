@@ -36,7 +36,7 @@ class Argumentum
         
         $rules = $this->parseComment($rm->getDocComment());
         
-        foreach ($rm->getParameters() as $p) {
+        if($rules) { foreach ($rm->getParameters() as $p) {
             /* @var $p \ReflectionParameter */
             
             if(!$this->validator->check($rules[$p->getName()], $arguments[$p->getPosition()])){
@@ -46,7 +46,7 @@ class Argumentum
                 
                 throw new \InvalidArgumentException("Parameter $name does not pass rule $rule");
             }
-        }
+        }}
     }
     
     /**
@@ -64,6 +64,10 @@ class Argumentum
 
             //pass these strings
             if (in_array($line, ['/*', '/**', '*', '*/'])) {
+                continue;
+            }
+            
+            if(!strlen($line)){
                 continue;
             }
 
